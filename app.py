@@ -18,3 +18,7 @@ class GreetRequest(BaseModel):
 @app.post("/greet")
 def greet(data: GreetRequest):
     return {"message": f"Hello, {data.name}! 🚀"}
+
+@app.get("/hello")
+def say_hello(name: str = "Guest"):
+    return {"message": f"Hello, {name}! 🎉"}
