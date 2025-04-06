@@ -1,17 +1,20 @@
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import openai
+from dotenv import load_dotenv
+import os
 
+app = FastAPI()
+
+# ✅ CORS設定は FastAPI() の後に！
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ★ 開発中はこれでOK！セキュリティ強化したい場合は特定ドメインに
+    allow_origins=["*"],  # 開発中はこれでOK！
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
-
-app = FastAPI()
 
 @app.get("/")
 def read_root():
@@ -21,7 +24,6 @@ def read_root():
 def about():
     return {"message": "This is Eric's API 🚀"}
 
-# 🆕 ここからPOSTの定義！
 class GreetRequest(BaseModel):
     name: str
 
@@ -32,10 +34,6 @@ def greet(data: GreetRequest):
 @app.get("/hello")
 def say_hello(name: str = "Guest"):
     return {"message": f"Hello, {name}! 🎉"}
-
-import openai
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
