@@ -4,6 +4,14 @@ from pydantic import BaseModel
 import openai
 from dotenv import load_dotenv
 import os
+import requests  # ← 追加
+
+# 環境変数からAPIキー読み込み
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+SUPABASE_TABLE = "messages"
 
 app = FastAPI()
 
@@ -15,10 +23,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 環境変数からAPIキー読み込み
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.get("/")
 def read_root():
@@ -47,6 +51,7 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
+        # ChatGPTから応答を取得
         response = openai.ChatCompletion.create(
             model=req.model,
             messages=[
@@ -54,6 +59,31 @@ def chat(req: ChatRequest):
             ]
         )
         reply = response.choices[0].message.content.strip()
+
+        # 🔽 Supabaseにチャットログを保存
+        headers = {
+            "apikey": SUPABASE_API_KEY,
+            "Authorization": f"Bearer {SUPABASE_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = [
+            {"role": "user", "message": req.message, "model": req.model},
+            {"role": "bot", "message": reply, "model": req.model}
+        ]
+
+        supabase_url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
+
+        res = requests.post(
+            supabase_url,
+            json=data,
+            headers=headers
+        )
+
+        if res.status_code >= 400:
+            print("Supabase insert failed:", res.text)
+
         return {"reply": reply}
+
     except Exception as e:
         return {"error": str(e)}
