@@ -7,14 +7,18 @@ import os
 
 app = FastAPI()
 
-# ✅ CORS設定は FastAPI() の後に！
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 開発中はこれでOK！
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 環境変数からAPIキー読み込み
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.get("/")
 def read_root():
@@ -35,17 +39,16 @@ def greet(data: GreetRequest):
 def say_hello(name: str = "Guest"):
     return {"message": f"Hello, {name}! 🎉"}
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# Chatリクエスト用モデル（modelフィールドを追加）
 class ChatRequest(BaseModel):
     message: str
+    model: str = "gpt-3.5-turbo"  # デフォルトモデルを指定
 
 @app.post("/chat")
 def chat(req: ChatRequest):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=req.model,
             messages=[
                 {"role": "user", "content": req.message}
             ]
